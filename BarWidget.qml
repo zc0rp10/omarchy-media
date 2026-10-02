@@ -19,7 +19,9 @@ BarWidget {
   property bool popupOpen: false
 
   function close() { popupOpen = false }
-  property real maxLabelWidth: 180
+  // Widest the "title · artist" label may get before it is cut with "…".
+  // Override per bar in shell.json: { "id": "bjfa.media", "maxWidth": 500 }
+  readonly property real maxLabelWidth: setting("maxWidth", 400)
 
   visible: hasMedia
   implicitWidth: hasMedia ? row.implicitWidth + Style.space(14) : 0
@@ -44,35 +46,19 @@ BarWidget {
       }
     }
 
-    Item {
-      id: scrollClip
-      width: Math.min(root.maxLabelWidth, labelText.implicitWidth)
-      height: glyph.height
-      clip: true
+    // Static label, cut with "…" when too long. The stock widget scrolls long
+    // titles forever, which redraws every bar at 60 fps for the whole track.
+    Text {
+      id: labelText
+      textFormat: Text.PlainText
+      text: root.title + (root.artist ? "  ·  " + root.artist : "")
+      width: Math.min(root.maxLabelWidth, implicitWidth)
+      elide: Text.ElideRight
+      color: root.bar.barForeground
+      font.family: root.bar.fontFamily
+      font.pixelSize: Style.font.body
       anchors.verticalCenter: parent.verticalCenter
       visible: !root.bar.vertical && root.title !== ""
-
-      Text {
-        id: labelText
-        textFormat: Text.PlainText
-        text: root.title + (root.artist ? "  ·  " + root.artist : "")
-        color: root.bar.barForeground
-        font.family: root.bar.fontFamily
-        font.pixelSize: Style.font.body
-        anchors.verticalCenter: parent.verticalCenter
-
-        property bool needsScroll: implicitWidth > scrollClip.width
-
-        NumberAnimation on x {
-          id: scrollAnim
-          running: labelText.needsScroll && !root.popupOpen && !root.bar.vertical
-          loops: Animation.Infinite
-          duration: Math.max(6000, labelText.implicitWidth * 25)
-          from: scrollClip.width
-          to: -labelText.implicitWidth
-          easing.type: Easing.Linear
-        }
-      }
     }
   }
 
